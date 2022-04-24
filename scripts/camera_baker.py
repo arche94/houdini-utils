@@ -5,18 +5,21 @@ node = hou.node('/obj')
 
 def create_camera(alembic):
     if alembic.type().name() == 'alembicxform':
-        return node.createNode('cam', alembic.name() + '_bake')
+        new_cam = node.createNode('cam', alembic.name() + '_bake')
+        set_alembic_ref(new_cam, alembic)
+        return new_cam
     else:
         raise TypeError('Input is not an alembic\nNode type: ' + str(alembic.type()))
 
-def keyframe_parms(source, dest):
+def keyframe_parms(source, dest, settings):
     cur_frame = hou.intFrame()
 
-    hou.setFrame(int(hou.playbar.playbackRange()[0]))
-    for f in range(int(hou.playbar.playbackRange()[0]), int(hou.playbar.playbackRange()[1])+1, 1):
+    hou.setFrame(settings['frameStart'])
+    for f in range(settings['frameStart'], settings['frameEnd']+1, 1):
         hou.setFrame(f)
-       
         worldTransform = source.worldTransform()
+
+        hou.setFrame(f+settings['offset'])
         set_transform(worldTransform, dest)
         
         set_camera_parms(source, dest)
@@ -80,6 +83,31 @@ def set_camera_parms(source, dest):
     dest.parm('shutter').setKeyframe(hou.Keyframe(shutter))
     dest.parm('aspect').setKeyframe(hou.Keyframe(aspect))
     
+def set_alembic_ref(cam, abc):
+    cam_tmpl = hou.ParmTemplateGroup(cam.parmTemplateGroup().entries())
+    ref_tmpl = hou.StringParmTemplate('abc_ref', 'Original Alembic', 1, default_value=(abc.path(),), string_type=hou.stringParmType.NodeReference)
+    cam_tmpl.insertBefore(cam_tmpl.entryAtIndices((0,)), ref_tmpl)
+    cam.setParmTemplateGroup(cam_tmpl)
+
+def getBakeOptions():
+    frameStart = int(hou.playbar.playbackRange()[0])
+    frameEnd = int(hou.playbar.playbackRange()[1])
+
+    helpMessage = "Options for baking an alembic camera into a default Houdini camera"
+
+    inputLabels = ("Bake Start Frame", "Bake End Frame", "Bake Offset")
+    inputDefaults = (str(frameStart), str(frameEnd), "0")
+
+    return hou.ui.readMultiInput("Camera bake options",buttons=("Cancel", "OK"), default_choice=1, close_choice=0, help=helpMessage, input_labels=inputLabels, initial_contents=inputDefaults)
+
 for n in selection:
-    new_cam = create_camera(n)
-    keyframe_parms(n, new_cam)
+    usrSettings = getBakeOptions()
+
+    if usrSettings[0] == 1:
+        settings = {
+            "frameStart": int(usrSettings[1][0]),
+            "frameEnd": int(usrSettings[1][1]),
+            "offset": int(usrSettings[1][2])
+        }
+        new_cam = create_camera(n)
+        keyframe_parms(n, new_cam, settings)
