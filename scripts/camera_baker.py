@@ -4,7 +4,7 @@ selection = hou.selectedNodes()
 node = hou.node('/obj')
 
 def create_camera(alembic):
-    if alembic.type().name() == 'alembicxform':
+    if alembic.type().name() == 'alembicxform' or alembic.type().name() == 'cam':
         new_cam = node.createNode('cam', alembic.name() + '_bake')
         set_alembic_ref(new_cam, alembic)
         return new_cam
@@ -12,12 +12,19 @@ def create_camera(alembic):
         raise TypeError('Input is not an alembic\nNode type: ' + str(alembic.type()))
 
 def keyframe_parms(source, dest, settings):
+    if source.type().name() == 'cam':
+        src_cam = source
+    else:
+        for ch in source.allSubChildren():
+            if ch.type().name() == 'cam':
+                src_cam = ch
+                break
     cur_frame = hou.intFrame()
 
     hou.setFrame(settings['frameStart'])
     for f in range(settings['frameStart'], settings['frameEnd']+1, 1):
         hou.setFrame(f)
-        worldTransform = source.worldTransform()
+        worldTransform = src_cam.worldTransform()
 
         hou.setFrame(f+settings['offset'])
         set_transform(worldTransform, dest)
@@ -57,7 +64,7 @@ def set_camera_parms(source, dest):
         shutter = source.parm('shutter').eval()
         aspect = source.parm('aspect').eval()
     except:
-        for ch in source.children():
+        for ch in source.allSubChildren():
             if ch.type().name() == 'cam':
                 src_cam = ch
                 break
@@ -109,5 +116,7 @@ for n in selection:
             "frameEnd": int(usrSettings[1][1]),
             "offset": int(usrSettings[1][2])
         }
+        if n.type().name() == 'alembicarchive':
+            n = n.children()[0]
         new_cam = create_camera(n)
         keyframe_parms(n, new_cam, settings)
