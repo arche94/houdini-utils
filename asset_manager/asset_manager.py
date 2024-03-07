@@ -29,7 +29,7 @@ def upload_asset(node):
     dest_file.write(asset_data)
 
   # upload into cloud library
-  cloud_mod_path = os.path.join(hou.getenv('HU'), 'asset_manager').replace('\\', '/')
+  cloud_mod_path = os.path.join(hou.getenv('HU_DIR'), 'asset_manager').replace('\\', '/')
   man = DropboxUtils(module_basepath=cloud_mod_path)
   asset = man.uploadAsset(destfile, overwrite=True)
   asset_link = man.getSharedLink(destpath)
