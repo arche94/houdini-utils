@@ -3,6 +3,8 @@ import os
 import json
 from DropboxUtil import DropboxUtils
 
+cloud_mod_path = os.path.join(hou.getenv('HU_DIR'), 'asset_manager').replace('\\', '/')
+
 def upload_asset(node):
   # find library path destination
   asset_path = node.parm('file').eval()
@@ -29,7 +31,6 @@ def upload_asset(node):
     dest_file.write(asset_data)
 
   # upload into cloud library
-  cloud_mod_path = os.path.join(hou.getenv('HU_DIR'), 'asset_manager').replace('\\', '/')
   man = DropboxUtils(module_basepath=cloud_mod_path)
   asset = man.uploadAsset(destfile, overwrite=True)
   asset_link = man.getSharedLink(destpath)
@@ -38,11 +39,13 @@ def upload_asset(node):
   update_library(asset, asset_link)
 
 def update_library(asset, asset_link):
-  if not os.path.exists('assetlib.json') or os.path.getsize('assetlib.json') == 0:
-    with open('assetlib.json', 'w') as lib_file:
+  lib_destfile = os.path.join(cloud_mod_path, 'assetlib.json').replace('\\', '/')
+
+  if not os.path.exists(lib_destfile) or os.path.getsize(lib_destfile) == 0:
+    with open(lib_destfile, 'w') as lib_file:
       json.dump({}, lib_file, indent=2)
 
-  with open('assetlib.json', 'r') as lib_file:
+  with open(lib_destfile, 'r') as lib_file:
     asset_lib = json.load(lib_file)
 
   entry = {
@@ -52,5 +55,5 @@ def update_library(asset, asset_link):
   }
   asset_lib[asset.id] = entry
 
-  with open('assetlib.json', 'w') as lib_file:
+  with open(lib_destfile, 'w') as lib_file:
     json.dump(asset_lib, lib_file, indent=2)
