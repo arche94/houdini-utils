@@ -1,7 +1,6 @@
 import hou
 import os
 import json
-import shutil
 from DropboxUtil import DropboxUtils
 
 def upload_asset(node):
@@ -15,14 +14,23 @@ def upload_asset(node):
   if 'vdb' in asset_name:
     asset_name = asset_name.replace('.vdb', '')
     ext = 'vdb'
-  destpath = '/' + asset_name + '/' + asset_name + '.' + ext
+  
+  destpath = '/' + asset_name
+  destfile = destpath + '/' + asset_name + '.' + ext
   
   # copy into local library
-  shutil.copyfile(asset_path, '_assets' + destpath)
+  with open(asset_path, 'rb') as asset_file:
+    asset_data = asset_file.read()
+  
+  if not os.path.exists(destpath):
+    os.makedirs(destpath)
+
+  with open(destfile, 'wb') as dest_file:
+    dest_file.write(asset_data)
 
   # upload into cloud library
   man = DropboxUtils()
-  asset = man.uploadAsset(destpath, overwrite=True)
+  asset = man.uploadAsset(destfile, overwrite=True)
   asset_link = man.getSharedLink(destpath)
 
   # update asset info
