@@ -9,7 +9,7 @@ import time
 
 class DropboxUtils:
   def __init__(self, module_basepath=''):
-    self.__config_file = os.join(module_basepath, "config.yaml").replace('\\', '/')
+    self.__config_file = os.path.join(module_basepath, "config.yaml").replace('\\', '/')
 
     with open(self.__config_file, "r") as config_file:
       try:
