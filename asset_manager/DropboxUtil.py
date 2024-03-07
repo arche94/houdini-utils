@@ -8,8 +8,10 @@ import datetime
 import time
 
 class DropboxUtils:
-  def __init__(self):
-    with open("config.yaml", "r") as config_file:
+  def __init__(self, module_basepath=''):
+    self.__config_file = os.join(module_basepath, "config.yaml").replace('\\', '/')
+
+    with open(self.__config_file, "r") as config_file:
       try:
         config = yaml.safe_load(config_file)
       except yaml.YAMLError as e:
@@ -111,12 +113,12 @@ class DropboxUtils:
     res = requests.post(url, data=data)
     if res.status_code == 200:
       self.__refresh_token = res.json().get('refresh_token')
-      with open('config.yaml', 'r') as config_file:
+      with open(self.__config_file, 'r') as config_file:
         config = yaml.safe_load(config_file)
       
       config['dropbox']['refresh_token'] = self.__refresh_token
 
-      with open('config.yaml', 'w') as config_file:
+      with open(self.__config_file, 'w') as config_file:
         yaml.dump(config, config_file)
     else:
       print(f"Error getting refresh token: {res.text}")
