@@ -161,4 +161,4 @@ cython_debug/
 
 # Personal
 _assets/
-testlib.json
+asset_manager/*lib.json
